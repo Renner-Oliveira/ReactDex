@@ -35,6 +35,7 @@ const Pokemon = ({ pokemon, shiny, detailed, changeFilter, resetPage, filter }) 
     }
     resetPage();
   }
+  //ok
 
   let isKeyDown = (() => {
       let state = {};
