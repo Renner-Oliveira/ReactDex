@@ -13,7 +13,6 @@ export const Container = styled.div`
     width: ${props => props.detailed ? "auto" : "180px"};
     height: ${props => props.detailed ? "auto" : "180px"};
     font-size: ${props => props.detailed && "18px;"};
-    cursor: pointer;
 
     header {
         display: flex;
@@ -30,7 +29,12 @@ export const Container = styled.div`
 
     }
 
-    div {
+    .pokemon-detail {
+        cursor: pointer;
+    }
+
+    .pokemon-sprite {
+        text-align: center;
         img {
             border-radius: 50%;
             height: 96px;
@@ -41,6 +45,7 @@ export const Container = styled.div`
 
     .badges {
         margin: 10px;
+        cursor: pointer;
 
         span {
             text-transform: capitalize;

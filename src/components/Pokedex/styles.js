@@ -4,8 +4,7 @@ export const Container = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 200px;
-    padding: 10px;
+    padding: 10px 0;
     margin: 0 5px;
     border-radius: 10px;
     border-top: 30px;
@@ -17,6 +16,14 @@ export const Container = styled.div`
     border-style: solid;
     
     background-color: white;
+
+    #myPokemon {
+        margin: 10px;
+        width: 200px;
+        height: 87vh;
+        max-height: 80vh;
+        overflow: auto;
+    }
 
     #pokedexHeader {
         text-shadow: -1px -1px 0 white,  

@@ -1,41 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 
-import Pokeapi from '../../services/api';
+import { useDrop } from 'react-dnd'
+
+import * as PokedexActions from '../../store/actions/pokedex';
+
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 
 import { Container } from './styles';
 import Pokemon from '../Pokemon';
 
-export default function Pokedex() {
+const Pokedex = ({addPokemon, pokemon}) => {
 
-    const [pokemon, setPokemon] = useState([]);
+  const ref = useRef();
 
-    useEffect(() => {
-
-        getPokemon(1);
-        console.log(pokemon)
-        // eslint-disable-next-line
-    }, []);
-
-    function getPokemon(id) {
-        async function get(id) {
-            const { data } = await Pokeapi.GetPokemon(id);
-            console.log(data)
-            setPokemon([data]);
-        }
-
-        get(id);
+  const [, dropRef] = useDrop({
+    accept: 'POKEMON',
+    drop(item) {
+      addPokemon({...item.pokemon, pokedex: true});
     }
+  });
 
-    return (
-      <Container>
-          <header id="pokedexHeader">
-            <h3>Minha Pokedex</h3>
-          </header>
-          { 
-            pokemon.map(poke => 
-                <Pokemon pokemon={poke} shiny={false} detailed={false} />
+  useEffect(() => {
+      // eslint-disable-next-line
+  }, []);
+
+  dropRef(ref);
+
+  return (
+    <Container ref={ref}>
+        <header id="pokedexHeader">
+          <h3>Minha Pokedex</h3>
+        </header>
+        <div id="myPokemon">
+          {
+            pokemon.length === 0 && <center>Arraste e solte um pokémon para adicionar!</center>
+          }
+          {
+            pokemon.map(pokemon => 
+                <Pokemon key={pokemon.id} pokemon={pokemon} shiny={false} detailed={false} />
             )
           }
-      </Container>
-    );
+        </div>
+    </Container>
+  );
 }
+
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(PokedexActions, dispatch);
+
+const mapStateToProps = state => ({
+  pokemon: state.pokedex.myPokemon.sort((a, b) => a.id - b.id),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Pokedex)

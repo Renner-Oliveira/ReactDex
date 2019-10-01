@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { MdArrowForward, MdArrowBack } from 'react-icons/md';
+
+import { useDrop } from 'react-dnd'
+
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import * as SearchActions from '../../store/actions/search';
+import * as PokemonActions from '../../store/actions/pokemon';
+import * as PokedexActions from '../../store/actions/pokedex';
 
 import Pokeapi from '../../services/api';
 import Pokemon from '../Pokemon';
@@ -7,127 +15,70 @@ import Pokemon from '../Pokemon';
 import { Container } from './styles';
 import pokeballLoad from '../../styles/pokeball-load.png'
 
-export default function List() {
+const List = ({ resetPage, toggleShiny, changeFilter, getPokemon, removePokemon, toPrevPage, toNextPage, filter, filteredPokemons, pokemons, loading, actualPage, nextPage }) => {
 
-  const [pokemons, setPokemons] = useState([]);
-  const [nextUrl, setNextUrl] = useState('');
-  const [prevUrl, setPrevUrl] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [shiny, setShiny] = useState(false);
-  const [filtro, setFiltro] = useState('');
   const [evolutionList, setEvolutionList] = useState([]);
+  const [details, setDetails] = useState(false);
 
-  const pokemonNext = () => {
+  const ref = useRef();
 
-    async function getNextPage() {
-      setLoading(true);
-
-      if(!nextUrl || nextUrl === 'type') {
-        let data = await Pokeapi.GetPokemonList(32);
-        setPokemons(data.results);
-        setNextUrl(data.next);
-      } else {
-        let data = await Pokeapi.GetResource(nextUrl);
-        setPokemons(data.results);
-        setNextUrl(data.next);
-        setPrevUrl(data.previous);
+  const [, dropRef] = useDrop({
+    accept: 'POKEMON',
+    drop(item) {
+      console.log(item)
+      if (item.pokemon.pokedex) {
+        removePokemon(item.pokemon);
       }
+    }
+  });
 
-      setLoading(false);
-    } 
+  dropRef(ref);
 
-    getNextPage();
+  const getAllPokemon = () => {
+    getPokemon(64);
+    getPokemon(964);
+  }
+
+  function pokemonNext() {
+    toNextPage();
   }
 
   function pokemonPrev() {
-    
-    async function getPrevPage() {
-      setLoading(true);
-      let data = await Pokeapi.GetResource(prevUrl);
-      setPokemons(data.results);
-      setPrevUrl(data.previous);
-      setNextUrl(data.next);
-      
-      setLoading(false);
-    }
-
-    getPrevPage();
-  }
-
-  function pesquisarPokemon(filtro, evolutions = false) {
-    async function getPokemon() {
-      if(filtro) {
-        let data = await Pokeapi.GetPokemon(filtro, evolutions);
-        if(data) {
-          await getAllEvolution(data.data);
-          setPokemons([data.data]);
-          setPrevUrl('');
-          setNextUrl('');
-        } else {
-          if(!nextUrl || nextUrl === 'type') {
-            pokemonNext();
-          }
-        }
-      } else {
-        if(!nextUrl || nextUrl === 'type') {
-          pokemonNext();
-        }
-      }
-      setLoading(false);
-    }
-    getPokemon();
-  }
-
-  function pesquisarPokemonByTipo(filtro) {
-    async function getPokemon() {
-      if(nextUrl !== 'type') {
-        setLoading(true);
-      }
-      let data = await Pokeapi.GetPokemonListByType(filtro);
-
-      if(data.length > 0) {
-        setPokemons(data);
-        setPrevUrl('type');
-        setNextUrl('type');
-      }
-      setLoading(false);
-    }
-    if(filtro) {
-      getPokemon();
-    }
+    toPrevPage();
   }
 
   function handleChange(event) {
+ 
+    let filtro = event.target.value.toLowerCase();
 
-    const types = ['water','bug','dark','dragon','electric','fairy','fighting','fire','flying','ghost','grass','ground','ice','normal','poison','psychic','rock','steel'];
-    
-    let filtro = event.target.value.toLowerCase().split(' ')[0];
-
-    setFiltro(event.target.value);
-
-    if(types.includes(filtro)) {
-      pesquisarPokemonByTipo(filtro);
+    if(event.target.value.toLowerCase().includes("details")) {
+      setDetails(true);
     } else {
-      pesquisarPokemon(filtro, true);
+      setDetails(false);
     }
 
-    if(event.target.value.toLowerCase() === "shiny") {
-      setShiny(!shiny);
+    if(event.target.value.toLowerCase().includes("shiny")) {
+      toggleShiny(true);
     } else {
-      if(event.target.value.toLowerCase().split(' ')[1] === "shiny") {
-        setShiny(true);
-      } else {
-        setShiny(false);
-      }
+      toggleShiny(false);
     }
-  }
 
-  function detailPokemon(name) {
-    setFiltro(name);
-    pesquisarPokemon(name, true);
+    if("details".includes(filtro)) {
+      filtro = filtro.replace("details", "")
+    }
+
+    if("shiny".includes(filtro)) {
+      filtro = filtro.replace("shiny", "")
+    }
+
+    changeFilter(filtro);
+    resetPage();
   }
 
   async function getAllEvolution(pokemon) {
+    const pokemonWithEvolutions = await Pokeapi.GetPokemon(pokemon.name, true);
+    pokemon = pokemonWithEvolutions.data;
+    console.log(pokemon);
     if(pokemon.species.evolution_chain.chain.species.name) {
       if(evolutionList.length) {
         if(pokemon.species.evolution_chain.chain.species.name !== evolutionList[0].data.name) {
@@ -199,31 +150,60 @@ export default function List() {
   }
 
   useEffect(() => {
-    setLoading(true);
-
-    pokemonNext();
+    if(pokemons.length === 0) {
+      getAllPokemon();
+    }
+    if(filteredPokemons.length === 1) {
+      getAllEvolution(filteredPokemons[0]);
+    }
     // eslint-disable-next-line
-  }, []);
+  });
 
   return (
-    <Container>
+    <Container ref={ref}>
       { loading && <div id="load"><img src={pokeballLoad} alt="" /></div>}
 
       <div id="filtro">
-        <input id="filtroInput" value={filtro} onChange={handleChange} placeholder="Pesquisar por Nome, Numero ou Tipo" />
+        <input id="filtroInput" value={filter} onChange={handleChange} placeholder="Pesquisar por Nome, Numero ou Tipo" />
       </div>
       <div id="pokemonList">
-        {pokemons.map((pokemon, index) => pokemon.sprites.front_default && <Pokemon key={index} pokemon={pokemon} shiny={shiny} onClick={ () => detailPokemon(pokemon.name) } detailed={pokemons.length === 1} />  )}
+        {filteredPokemons.slice(actualPage, nextPage).map((pokemon, index) => <Pokemon key={index} pokemon={pokemon} detailed={filteredPokemons.length === 1 || details} />  )}
       </div>
-      { pokemons.length === 1 &&
+      { filteredPokemons.length === 1 &&
         <div id="evolutionList">
-          {evolutionList.map((evolution, index) => <Pokemon key={index} pokemon={evolution.data} shiny={shiny} onClick={ () => detailPokemon(evolution.data.name) } detailed={false} />)}
+          {evolutionList.map((evolution, index) => <Pokemon key={index} pokemon={evolution.data} detailed={false} />)}
         </div>
       }
       <div id="paginacao">
-        {(prevUrl && prevUrl !== 'type') && <button onClick={pokemonPrev}><MdArrowBack size={26}></MdArrowBack></button>}
-        {(nextUrl && nextUrl !== 'type') && <button onClick={pokemonNext}><MdArrowForward size={26}></MdArrowForward></button>}
+        {!(actualPage === 0) && <button onClick={pokemonPrev}><MdArrowBack size={26}></MdArrowBack></button>}
+        {!(filteredPokemons.slice(actualPage, nextPage).length < 32) && <button onClick={pokemonNext}><MdArrowForward size={26}></MdArrowForward></button>}
       </div>
     </Container>
   );
 }
+
+function mapStateToProps(state) {
+  const {filter} = state.search;
+  const {pokemons} = state.pokemon;
+
+  return {
+    filteredPokemons: pokemons.filter(
+      p => filter.includes(p.name) || 
+      p.name.includes(filter) || 
+      (p.types.every(t => filter.includes(t.type.name)) && filter.split('&').length < 3) || 
+      (p.types.some(t => filter.includes(t.type.name)) && !filter.includes('&'))
+    ),
+    loading: state.pokemon.loading,
+    actualPage: state.pokemon.actualPage,
+    nextPage: state.pokemon.nextPage,
+    filter,
+    pokemons
+  }
+
+}
+
+const mapDispatchToProps = dispatch =>  
+  bindActionCreators(Object.assign({}, SearchActions, PokemonActions, PokedexActions), dispatch)
+
+
+export default connect(mapStateToProps, mapDispatchToProps)(List);

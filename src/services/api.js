@@ -4,7 +4,7 @@ const baseService = axios.create({
     baseURL: 'https://pokeapi.co/api/v2/'
 });
 
-export default {
+const api = {
     async GetPokemonList(limit) {
         let {data} = await baseService.get('pokemon/?limit=' + limit);
         const dataDetails = await this.getDetails(data);
@@ -58,3 +58,5 @@ export default {
         return data;
     }
 }
+
+export default api
